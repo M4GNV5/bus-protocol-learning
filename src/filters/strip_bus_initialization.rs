@@ -1,7 +1,27 @@
-use std::cmp::min;
+use crate::common::{DynResult, BusExtractionError, BusExtraction};
 
-pub fn strip_bus_initialization(values: &mut Vec<f64>, initialization_length: usize) -> f64 {
-	let drain_len = min(initialization_length, values.len() - 1);
-	values.drain(0..drain_len);
-	1f64
+pub fn strip_bus_initialization(target: &mut BusExtraction) -> DynResult<f64> {
+	if target.raw_values.len() != target.values.len() {
+		return BusExtractionError::create("Cannot strip initialization on an already stripped extraction");
+	}
+
+	let mut ones = 0;
+	for _ in 0..target.size {
+		ones <<= 1;
+		ones |= 1;
+	}
+
+	let mut prefix = 0;
+	for val in &target.raw_values {
+		if *val != ones && *val != 0 {
+			break;
+		}
+		prefix += 1;
+	}
+
+	if prefix != target.raw_values.len() {
+		target.values.drain(0..prefix);
+	}
+
+	Ok(1f64)
 }

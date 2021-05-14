@@ -20,18 +20,14 @@ pub enum Filter {
 		min: f64,
 		max: f64,
 	},
-	StrictLinear {
-		is_falling: bool,
-	},
 	OscillatingSensor {
 		min_oscillating_ratio: f64,
 	},
-	Constant {
-		require_constant: bool,
-	},
-	StripInitialization {
-		initialization_length: usize,
-	},
+	StrictRising,
+	StrictFalling,
+	RequireNonConstant,
+	RequireConstant,
+	StripInitialization,
 }
 
 pub const FILTER_SAMPLES: &'static [Filter] = &[
@@ -39,18 +35,14 @@ pub const FILTER_SAMPLES: &'static [Filter] = &[
 		min: 42.0,
 		max: 1337.0,
 	},
-	Filter::StrictLinear {
-		is_falling: false,
-	},
 	Filter::OscillatingSensor {
 		min_oscillating_ratio: 0.5,
 	},
-	Filter::Constant {
-		require_constant: false,
-	},
-	Filter::StripInitialization {
-		initialization_length: 200,
-	},
+	Filter::StrictRising,
+	Filter::StrictFalling,
+	Filter::RequireNonConstant,
+	Filter::RequireConstant,
+	Filter::StripInitialization,
 ];
 
 pub fn apply_filter(filter: &Filter, target: &mut BusExtraction) -> DynResult<()> {
@@ -63,11 +55,14 @@ pub fn apply_filter(filter: &Filter, target: &mut BusExtraction) -> DynResult<()
 			}
 			confidence
 		},
-		Filter::StrictLinear {is_falling} => filter_non_linear_growth(&target.values),
-		Filter::OscillatingSensor {min_oscillating_ratio} => filter_non_oscillating_sensors(&target.values),
-		Filter::Constant {require_constant} => filter_constant_values(&target.values, *require_constant),
-		Filter::StripInitialization {initialization_length} =>
-			strip_bus_initialization(&mut target.values, *initialization_length),
+		Filter::OscillatingSensor {min_oscillating_ratio} => {
+			filter_non_oscillating_sensors(&target.values, *min_oscillating_ratio)
+		},
+		Filter::StrictRising => filter_non_linear_growth(&target.values, false),
+		Filter::StrictFalling => filter_non_linear_growth(&target.values, true),
+		Filter::RequireNonConstant => filter_constant_values(&target.values, false),
+		Filter::RequireConstant => filter_constant_values(&target.values, true),
+		Filter::StripInitialization => strip_bus_initialization(target)?,
 	};
 
 	target.confidence *= confidence;

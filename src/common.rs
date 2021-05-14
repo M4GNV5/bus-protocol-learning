@@ -1,4 +1,21 @@
-pub type DynResult<T> = Result<T, Box<dyn std::error::Error>>;
+use std::{error::Error, fmt};
+
+pub type DynResult<T> = Result<T, Box<dyn Error>>;
+
+#[derive(Debug)]
+pub struct BusExtractionError(pub String);
+impl BusExtractionError {
+	pub fn create<T, E>(msg: E) -> DynResult<T>
+	where E: ToString {
+		Err(Box::new(BusExtractionError(msg.to_string())))
+	}
+}
+impl Error for BusExtractionError {}
+impl fmt::Display for BusExtractionError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 pub struct BusExtraction {
 	// information on where/how to extract the value

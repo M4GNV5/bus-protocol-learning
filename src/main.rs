@@ -68,8 +68,8 @@ fn find_value(packets: &BusPackets, start: usize, align: usize, size: usize, fil
 			break
 		}
 
-		println!("FIND: confidence = {}, msg = {:03x}, index = {}, scale = {}, offset = {}",
-			finds[i].confidence, finds[i].header, finds[i].index, finds[i].scale, finds[i].offset);
+		println!("FIND: confidence = {}, msg = {:03x}, count = {}, index = {}, scale = {}, offset = {}",
+			finds[i].confidence, finds[i].header, finds[i].values.len(), finds[i].index, finds[i].scale, finds[i].offset);
 	}
 
 	Ok(())

@@ -4,8 +4,6 @@ const COMMON_SCALES: &'static [i32] = &[
 	4,
 	8,
 	16,
-	32,
-	64,
 	10,
 	100,
 	1000,

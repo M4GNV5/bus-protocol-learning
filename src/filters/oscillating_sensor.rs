@@ -1,4 +1,4 @@
-pub fn filter_non_oscillating_sensors(values: &Vec<f64>) -> f64 {
+pub fn filter_non_oscillating_sensors(values: &Vec<f64>, min_ratio: f64) -> f64 {
 	let mut prev = values[0];
 	let mut change_count = 0;
 	let mut oscillating_count = 0;
@@ -20,7 +20,8 @@ pub fn filter_non_oscillating_sensors(values: &Vec<f64>) -> f64 {
 		prev = *val;
 	}
 
-	if oscillating_count * 2 > change_count {
+	let ratio = oscillating_count as f64 / change_count as f64;
+	if ratio > min_ratio {
 		1f64
 	}
 	else {
