@@ -1,4 +1,5 @@
 use std::{collections::HashMap};
+use std::fs::File;
 use clap::{Arg, App};
 
 pub mod hex;
@@ -79,12 +80,6 @@ fn main() -> DynResult<()> {
 		.version("0.0")
 		.author("Jakob Löw <jakob@löw.com>")
 		.about("Tries to learn bus protocols based on given ground truths")
-		.arg(Arg::with_name("show-filter-samples")
-			.long("show-filter-samples")
-			.help("Outputs a JSON list with example filters")
-			.takes_value(false)
-			.required(false)
-		)
 		.arg(Arg::with_name("input")
 			.short("i")
 			.long("input")
@@ -93,24 +88,22 @@ fn main() -> DynResult<()> {
 			.takes_value(true)
 			.required(true)
 		)
+		.arg(Arg::with_name("filter")
+			.long("filter")
+			.help("Filter JSON input file")
+			.takes_value(true)
+			.required(true)
+		)
+		.arg(Arg::with_name("show-filter-samples")
+			.long("show-filter-samples")
+			.help("Outputs a JSON list with example filters")
+			.takes_value(false)
+			.required(false)
+		)
 		.arg(Arg::with_name("header-length")
 			.long("header-length")
 			.value_name("LENGTH")
 			.help("How many bits at the beginning of each message are the header")
-			.takes_value(true)
-			.required(true)
-		)
-		.arg(Arg::with_name("value-min")
-			.long("value-min")
-			.value_name("VALUE-MIN")
-			.help("The maximum value of the entry we are searching for on the bus")
-			.takes_value(true)
-			.required(true)
-		)
-		.arg(Arg::with_name("value-max")
-			.long("value-max")
-			.value_name("VALUE-MAX")
-			.help("The maximum value of the entry we are searching for on the bus")
 			.takes_value(true)
 			.required(true)
 		)
@@ -127,18 +120,6 @@ fn main() -> DynResult<()> {
 			.help("The alignment of the value in bits (default: 8)")
 			.takes_value(true)
 		)
-		.arg(Arg::with_name("is-oscillating")
-			.long("is-oscillating")
-			.value_name("IS OSCILLATING")
-			.help("Wether to filter non-oscillating values")
-			.takes_value(false)
-		)
-		.arg(Arg::with_name("is-linear")
-			.long("is-linear")
-			.value_name("IS LINEAR")
-			.help("Wether to filter non-linear values")
-			.takes_value(false)
-		)
 		.get_matches();
 
 	if matches.is_present("show-filter-samples") {
@@ -148,29 +129,14 @@ fn main() -> DynResult<()> {
 	}
 
 	let input = matches.value_of("input").unwrap();
-	let target_min = matches.value_of("value-min").unwrap().parse::<f64>()?;
-	let target_max = matches.value_of("value-max").unwrap().parse::<f64>()?;
+	let filter_file = matches.value_of("filter").unwrap();
 	let value_size = matches.value_of("value-size").unwrap().parse::<usize>()?;
 	let value_align = matches.value_of("value-align").unwrap_or("8").parse::<usize>()?;
 	let header_len = matches.value_of("header-length").unwrap().parse::<usize>()?;
 	let header_byte_len = ((header_len + 7) & !0x7) / 8;
 
-	let mut filter = vec![
-		Filter::CommonScale {
-			min: target_min,
-			max: target_max,
-		},
-	];
-	if matches.is_present("is-linear") {
-		filter.push(Filter::StrictLinear{
-			is_falling: false,
-		});
-	}
-	if matches.is_present("is-oscillating") {
-		filter.push(Filter::OscillatingSensor{
-			min_oscillating_ratio: 0.5,
-		});
-	}
+	let f = File::open(filter_file)?;
+	let filter = serde_json::from_reader(f)?;
 
 	let lines = read_hex_file(input.to_string())?;
 	let mut packets: BusPackets = HashMap::new();
