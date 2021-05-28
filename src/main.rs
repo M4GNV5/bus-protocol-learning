@@ -5,14 +5,17 @@ use clap::{Arg, App};
 pub mod hex;
 pub mod common;
 pub mod filters;
+pub mod validate;
 
 use hex::{read_hex_file};
-use common::{DynResult, BusExtraction, extract_value};
+use common::{DynResult, BusExtraction, BusExtractionError, extract_value};
 use filters::{Filter, FILTER_SAMPLES, apply_filter};
+use validate::{validate_finds};
 
 pub type BusPackets = HashMap<u64, Vec<Vec<u8>>>;
 
-fn find_value(packets: &BusPackets, start: usize, align: usize, size: usize, filters: Vec<Filter>) -> DynResult<()> {
+fn find_value(packets: &BusPackets, start: usize, align: usize, size: usize, filters: Vec<Filter>)
+	-> DynResult<Vec<BusExtraction>> {
 
 	let mut finds = vec![];
 
@@ -56,23 +59,8 @@ fn find_value(packets: &BusPackets, start: usize, align: usize, size: usize, fil
 			filters.len(), messages.len(), header, size);
 	}
 
-	if finds.len() == 0 {
-		println!("ERROR: Unable to find value :(");
-		return Ok(()); // derp
-		//return Err("Unable to find value :(");
-	}
-
 	finds.sort_by(|a, b| b.confidence.partial_cmp(&a.confidence).unwrap());
-	for i in 0..20 {
-		if i >= finds.len() {
-			break
-		}
-
-		println!("FIND: confidence = {}, msg = {:03x}, count = {}, index = {}, scale = {}, offset = {}",
-			finds[i].confidence, finds[i].header, finds[i].values.len(), finds[i].index, finds[i].scale, finds[i].offset);
-	}
-
-	Ok(())
+	Ok(finds)
 }
 
 fn main() -> DynResult<()> {
@@ -93,6 +81,12 @@ fn main() -> DynResult<()> {
 			.help("Filter JSON input file")
 			.takes_value(true)
 			.required(true)
+		)
+		.arg(Arg::with_name("validate")
+			.long("validate")
+			.help("Validation file with correct results")
+			.takes_value(true)
+			.required(false)
 		)
 		.arg(Arg::with_name("show-filter-samples")
 			.long("show-filter-samples")
@@ -157,7 +151,33 @@ fn main() -> DynResult<()> {
 		others.push(msg);
 	}
 
-	find_value(&packets, header_len, value_align, value_size, filter)?;
+	let finds = find_value(&packets, header_len, value_align, value_size, filter)?;
+
+	if finds.len() == 0 {
+		return BusExtractionError::create("ERROR: Unable to find value :(");
+	}
+
+	for i in 0..20 {
+		if i >= finds.len() {
+			break
+		}
+
+		println!("FIND: confidence = {}, msg = {:03x}, count = {}, index = {}, scale = {}, offset = {}",
+			finds[i].confidence, finds[i].header, finds[i].values.len(), finds[i].index, finds[i].scale, finds[i].offset);
+	}
+
+	if matches.is_present("validate") {
+		let validation_file = matches.value_of("validate").unwrap();
+		let result = validate_finds(&finds, validation_file)?;
+
+		let sum = (result.correct_count + result.fail_count) as f64;
+		println!("Validation: correct = {}, missing = {}, ratio = {}",
+			result.correct_count, result.fail_count, result.correct_count as f64 / sum);
+
+		println!("Incorrect finds until first valid: {}", result.first_valid_index);
+		println!("Total finds until last valid: {}", result.last_valid_index);
+		println!("good/bad finds ratio: {}", result.correct_count as f64 / result.last_valid_index as f64);
+	}
 
 	Ok(())
 }
