@@ -1,0 +1,48 @@
+\documentclass[11pt]{article}
+
+\usepackage[a4paper, margin=2.5cm]{geometry}
+
+\title{\textbf{Model 3 Test Drive}}
+\author{Jakob Löw, Marco Michl, Dominik Bayerl}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+The goal of this test drive is to gather data which can be used for developing and validating an automatic bus analysis tools. Special attention has to be payed to matching bus dumps including unknown values to camera feeds which may contain fractions of the recorded data in a human readable format such as the speed displayed on the central screen matching the speed value on the bus.
+
+\section{Relevant Datapoints}
+% <!--Possible data points: https://play.google.com/store/apps/details?id=com.emon.canbus.tesla-->
+
+While the Tesla CAN bus contains hundreds of signals for various components only the most common signals are considered for this test. These include the state of charge, the cell voltage, the pack voltage, cell temperatures, charge speed, vehicle speed, vehicle acceleration and vehicle power output/input.
+All these signals are usually sent constantly and follow a certain change behaviour and value range. This makes them the best candidates for automatic labeling of their locations in bus dumps.
+
+Additional data points which might not be sent or change periodically, but rather only change on user interaction include data such as side window open height, air conditioner temperature, door open status and turn signals.
+
+\section{Test Preparation}
+Before testing begins the vehicle has to be fitted with bus sniffing devices. As the analysis software is ment to be independent of the bus architecture any vehicle bus which is available can and shall be logged if possible. Additioally cameras are used to record screen and gaugees of the vehicle. The bus logger is required to log the timestamps of received bus messages. All cameras need to be synced to the bus log timestamps by filming the activation, i.e. timestamp 0, of the bus logging software.
+
+\section{Test Procedure}
+The test is divided in three parts:
+\begin{enumerate}
+\item Regulated driving on a test track
+\item Manual actions invoked by the driver
+\item Vehicle charging using a fast charger
+\end{enumerate}
+
+\clearpage
+
+\subsection{Test track drive}
+This first part is the major part of the test. It is used to collect data on the relevant data points which do not require specific user interaction, but rather change based on the vehicle drive behaviour.
+Therefore the test procedure of this first part simply follows a list of predefined driving maneuvers such as accelerating to a specific speed, holding that speed for a set duration and deccelerating with and without the use of the brake pedal.
+A Tesla Model 3 two ways for decceleration: Regular disc brakes and recuperation. The recuperation itself can be set to different levels using the infotainment system. Similarly the acceleration level can be set to different levels in the infotainment.
+For each acceleration and decceleration profile seperate tests have to be performed which shall help identifying vehicle power output and input messages on the bus respectively.
+
+\subsection{Manual actions}
+The second part consists of simply triggering events of each user interaction based data point while preventing other data points from changing if possible. To best isolate these events a new labeled bus log with fixed duration shall be started for each event with the user event occuring in the middle of the log timeframe.
+
+\subsection{Vehicle Charging}
+The charging test is performed in order to later label state of charge, vehicle charge speed and if possible temperature messages. For labeling the charge speed the most significant point is the charge current ramp up right after starting the charge session. Tesla vehicles pre-condition battery temperatures to 50°C when a charging point is set as target in the navigation system. This functionality can be used to easily identify battery temperature bus messages.
+
+\end{document}
