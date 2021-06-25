@@ -3,12 +3,16 @@ use serde::{Deserialize, Serialize};
 use crate::common::{DynResult, BusExtraction};
 
 use common_scale::get_best_common_scale;
+use require_spread::filter_by_required_spread;
+use require_in_range::filter_not_in_range;
 use linear_growth::filter_non_linear_growth;
 use oscillating_sensor::filter_non_oscillating_sensors;
 use constants::filter_constant_values;
 use strip_bus_initialization::strip_bus_initialization;
 
 mod common_scale;
+mod require_spread;
+mod require_in_range;
 mod linear_growth;
 mod oscillating_sensor;
 mod constants;
@@ -19,6 +23,16 @@ pub enum Filter {
 	CommonScale {
 		min: f64,
 		max: f64,
+	},
+	RequireSpread {
+		min: f64,
+		max: f64,
+		ratio: f64,
+	},
+	RequireInRange {
+		min: f64,
+		max: f64,
+		ratio: f64,
 	},
 	OscillatingSensor {
 		min_oscillating_ratio: f64,
@@ -55,6 +69,12 @@ pub fn apply_filter(filter: &Filter, target: &mut BusExtraction) -> DynResult<()
 			}
 			confidence
 		},
+		Filter::RequireSpread {min, max, ratio} => {
+			filter_by_required_spread(&target.values, *min, *max, *ratio)
+		},
+		Filter::RequireInRange {min, max, ratio} => {
+			filter_not_in_range(&target.values, *min, *max, *ratio)
+		}
 		Filter::OscillatingSensor {min_oscillating_ratio} => {
 			filter_non_oscillating_sensors(&target.values, *min_oscillating_ratio)
 		},
