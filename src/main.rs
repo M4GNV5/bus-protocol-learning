@@ -1,5 +1,6 @@
 use std::{collections::HashMap};
 use std::fs::File;
+use std::io::Write;
 use clap::{Arg, App};
 
 pub mod hex;
@@ -16,7 +17,6 @@ pub type BusPackets = HashMap<u64, Vec<Vec<u8>>>;
 
 fn find_value(packets: &BusPackets, start: usize, align: usize, size: usize, filters: Vec<Filter>)
 	-> DynResult<Vec<BusExtraction>> {
-
 	let mut finds = vec![];
 
 	for (header, messages) in packets {
@@ -60,6 +60,7 @@ fn find_value(packets: &BusPackets, start: usize, align: usize, size: usize, fil
 	}
 
 	finds.sort_by(|a, b| b.confidence.partial_cmp(&a.confidence).unwrap());
+
 	Ok(finds)
 }
 
@@ -85,6 +86,12 @@ fn main() -> DynResult<()> {
 		.arg(Arg::with_name("validate")
 			.long("validate")
 			.help("Validation file with correct results")
+			.takes_value(true)
+			.required(false)
+		)
+		.arg(Arg::with_name("dump")
+			.long("dump")
+			.help("Dump found bus extractions to a csv file")
 			.takes_value(true)
 			.required(false)
 		)
@@ -157,13 +164,9 @@ fn main() -> DynResult<()> {
 		return BusExtractionError::create("ERROR: Unable to find value :(");
 	}
 
-	for i in 0..20 {
-		if i >= finds.len() {
-			break
-		}
-
+	for find in finds.iter().take(20) {
 		println!("FIND: confidence = {}, msg = {:03x}, count = {}, index = {}, scale = {}, offset = {}",
-			finds[i].confidence, finds[i].header, finds[i].values.len(), finds[i].index, finds[i].scale, finds[i].offset);
+			find.confidence, find.header, find.values.len(), find.index, find.scale, find.offset);
 	}
 
 	if matches.is_present("validate") {
@@ -177,6 +180,36 @@ fn main() -> DynResult<()> {
 		println!("Incorrect finds until first valid: {}", result.first_valid_index);
 		println!("Total finds until last valid: {}", result.last_valid_index);
 		println!("good/bad finds ratio: {}", result.correct_count as f64 / result.last_valid_index as f64);
+	}
+
+	if matches.is_present("dump") {
+		let dump_filename = matches.value_of("dump").unwrap();
+		let mut fd = File::create(dump_filename)?;
+
+		for find in finds.iter().take(20) {
+			write!(&mut fd, ",{:03x}-{}-{}", find.header, find.index, find.size)?;
+		}
+
+		writeln!(&mut fd)?;
+
+		let max_row_count = finds
+			.iter()
+			.take(20)
+			.map(|x| x.values.len())
+			.max()
+			.unwrap_or(0);
+
+		for row in 0..max_row_count {
+			for find in finds.iter().take(20) {
+				if row >= find.values.len() {
+					write!(&mut fd, ",")?;
+				}
+				else {
+					write!(&mut fd, ",{}", find.values[row])?;
+				}
+			}
+			writeln!(&mut fd)?;
+		}
 	}
 
 	Ok(())

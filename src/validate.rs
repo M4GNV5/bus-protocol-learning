@@ -38,7 +38,7 @@ pub fn validate_finds(finds: &Vec<BusExtraction>, validation_file: &str) -> DynR
 			included += 1;
 		}
 		else {
-			println!("Missing msg {} index {} size {} scale {}",
+			println!("Missing msg {:03x} index {} size {} scale {}",
 				validation.header, validation.index, validation.size, validation.scale);
 			missing += 1;
 		}
