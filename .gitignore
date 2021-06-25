@@ -1,1 +1,7 @@
 /target
+/filters*
+/sniffs
+/plots
+/validations
+
+*.pdf
