@@ -58,11 +58,29 @@ pub enum Filter {
 
 pub const FILTER_SAMPLES: &'static [Filter] = &[
 	Filter::CommonScale {
-		min: 42.0,
-		max: 1337.0,
+		min: 80f64,
+		max: 120f64,
+	},
+	Filter::RequireSpread {
+		min: 80f64,
+		max: 120f64,
+		ratio: 0.9,
+	},
+	Filter::RequireInRange {
+		min: 80f64,
+		max: 120f64,
+		ratio: 0.9,
 	},
 	Filter::OscillatingSensor {
 		min_oscillating_ratio: 0.5,
+	},
+	Filter::RequireLocalMinMax {
+		window_size: 10,
+		required_count: 5,
+	},
+	Filter::MonotonicChange {
+		max_change: 3.5,
+		required_monotonic_ratio: 0.97,
 	},
 	Filter::StrictRising,
 	Filter::StrictFalling,
