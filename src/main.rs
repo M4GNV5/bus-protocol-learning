@@ -158,6 +158,10 @@ fn main() -> DynResult<()> {
 		others.push(msg);
 	}
 
+	for id in varying {
+		packets.remove(&id);
+	}
+
 	let finds = find_value(&packets, header_len, value_align, value_size, filter)?;
 
 	if finds.len() == 0 {
